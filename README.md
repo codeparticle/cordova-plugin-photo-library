@@ -105,7 +105,7 @@ cordova.plugins.photoLibrary.saveImage(url, album, function (libraryItem) {}, fu
 
 ```js
 // iOS quirks: video provided cannot be .webm . Use .mov or .mp4 .
-cordova.plugins.photoLibrary.saveVideo(url, album, function () {}, function (err) {});
+cordova.plugins.photoLibrary.saveVideo(url, album, function (libraryItem) {}, function (err) {});
 ```
 
 saveImage and saveVideo both need write permission to be granted by requestAuthorization.
@@ -236,6 +236,17 @@ cordova.plugins.photoLibrary.getPhoto(
   });
 ```
 
+```js
+// Similar method to get video blob in base64
+cordova.plugins.photoLibrary.getVideo(
+  libraryItem, // or libraryItem.id
+  function (fullVideoBlob) {
+
+  },
+  function (err) {
+    console.log('Error occured');
+  });
+```
 # ionic / angular
 
 It's best to use from [ionic-native](https://ionicframework.com/docs/v2/native/photo-library). The the docs.
