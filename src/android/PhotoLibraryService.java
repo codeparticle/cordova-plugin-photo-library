@@ -193,6 +193,32 @@ public class PhotoLibraryService {
 
   }
 
+  public PictureAsStream getVideoAsStream(Context context, String videoId) throws IOException {
+
+    int imageId = getImageId(videoId);
+    String imageURL = getImageURL(videoId);
+    File imageFile = new File(imageURL);
+    Uri imageUri = Uri.fromFile(imageFile);
+
+    String mimeType = queryVideoMimeType(context, imageId);
+
+    InputStream is = context.getContentResolver().openInputStream(imageUri);
+
+    return new PictureAsStream(is, mimeType);
+
+  }
+
+  public PictureData getVideo(Context context, String videoId) throws IOException {
+
+    PictureAsStream videoAsStream = getVideoAsStream(context, videoId);
+
+    byte[] bytes =  readBytes(videoAsStream.getStream());
+    videoAsStream.getStream().close();
+
+    return new PictureData(bytes, videoAsStream.getMimeType());
+
+  }
+
   public void saveImage(final Context context, final CordovaInterface cordova, final String url, String album, final JSONObjectRunnable completion)
     throws IOException, URISyntaxException {
 
@@ -216,13 +242,24 @@ public class PhotoLibraryService {
 
   }
 
-  public void saveVideo(final Context context, final CordovaInterface cordova, String url, String album)
+  public void saveVideo(final Context context, final CordovaInterface cordova, String url, String album, final JSONObjectRunnable completion)
     throws IOException, URISyntaxException {
 
     saveMedia(context, cordova, url, album, videMimeToExtension, new FilePathRunnable() {
       @Override
       public void run(String filePath) {
-        // TODO: call queryLibrary and return libraryItem of what was saved
+        try {
+          // Find the saved image in the library and return it as libraryItem
+          String whereClause = MediaStore.MediaColumns.DATA + " = \"" + filePath + "\"";
+          queryVideoLibrary(context, whereClause, new ChunkResultRunnable() {
+            @Override
+            public void run(ArrayList<JSONObject> chunk, int chunkNum, boolean isLastChunk) {
+              completion.run(chunk.size() == 1 ? chunk.get(0) : null);
+            }
+          });
+        } catch (Exception e) {
+          completion.run(null);
+        }
       }
     });
 
@@ -394,6 +431,61 @@ public class PhotoLibraryService {
 
   }
 
+  private void queryVideoLibrary(Context context, int itemsInChunk, double chunkTimeSec, String whereClause, ChunkResultRunnable completion)
+    throws JSONException {
+
+    // All columns here: https://developer.android.com/reference/android/provider/MediaStore.Videos.VideoColumns.html,
+    // https://developer.android.com/reference/android/provider/MediaStore.MediaColumns.html
+    JSONObject columns = new JSONObject() {{
+      put("int.id", MediaStore.Video.Media._ID);
+      put("fileName", MediaStore.Video.VideoColumns.DISPLAY_NAME);
+      put("int.width", MediaStore.Video.VideoColumns.WIDTH);
+      put("int.height", MediaStore.Video.VideoColumns.HEIGHT);
+      put("albumId", MediaStore.Video.VideoColumns.BUCKET_ID);
+      put("date.creationDate", MediaStore.Video.VideoColumns.DATE_TAKEN);
+      put("float.latitude", MediaStore.Video.VideoColumns.LATITUDE);
+      put("float.longitude", MediaStore.Video.VideoColumns.LONGITUDE);
+      put("nativeURL", MediaStore.MediaColumns.DATA); // will not be returned to javascript
+    }};
+
+    final ArrayList<JSONObject> queryResults = queryContentProvider(context, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, columns, whereClause);
+
+    ArrayList<JSONObject> chunk = new ArrayList<JSONObject>();
+
+    long chunkStartTime = SystemClock.elapsedRealtime();
+    int chunkNum = 0;
+
+    for (int i=0; i<queryResults.size(); i++) {
+      JSONObject queryResult = queryResults.get(i);
+
+      // photoId is in format "imageid;imageurl"
+      queryResult.put("id",
+        queryResult.get("id") + ";" +
+          queryResult.get("nativeURL"));
+
+      queryResult.remove("nativeURL"); // Not needed
+
+      String albumId = queryResult.getString("albumId");
+      queryResult.remove("albumId");
+
+      chunk.add(queryResult);
+
+      if (i == queryResults.size() - 1) { // Last item
+        completion.run(chunk, chunkNum, true);
+      } else if ((itemsInChunk > 0 && chunk.size() == itemsInChunk) || (chunkTimeSec > 0 && (SystemClock.elapsedRealtime() - chunkStartTime) >= chunkTimeSec*1000)) {
+        completion.run(chunk, chunkNum, false);
+        chunkNum += 1;
+        chunk = new ArrayList<JSONObject>();
+        chunkStartTime = SystemClock.elapsedRealtime();
+      }
+    }
+  }
+
+  private void queryVideoLibrary(Context context, String whereClause, ChunkResultRunnable completion) throws JSONException {
+    queryVideoLibrary(context, 0,0, whereClause, completion);
+  }
+
+
   private String queryMimeType(Context context, int imageId) {
 
     Cursor cursor = context.getContentResolver().query(
@@ -401,6 +493,26 @@ public class PhotoLibraryService {
       new String[] { MediaStore.Images.ImageColumns.MIME_TYPE },
       MediaStore.MediaColumns._ID + "=?",
       new String[] {Integer.toString(imageId)}, null);
+
+    if (cursor != null && cursor.moveToFirst()) {
+      String mimeType = cursor.getString(cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE));
+      cursor.close();
+
+      return mimeType;
+
+    }
+
+    cursor.close();
+    return null;
+  }
+
+  private String queryVideoMimeType(Context context, int videoId) {
+
+    Cursor cursor = context.getContentResolver().query(
+      MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+      new String[] { MediaStore.Video.VideoColumns.MIME_TYPE },
+      MediaStore.MediaColumns._ID + "=?",
+      new String[] {Integer.toString(videoId)}, null);
 
     if (cursor != null && cursor.moveToFirst()) {
       String mimeType = cursor.getString(cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE));

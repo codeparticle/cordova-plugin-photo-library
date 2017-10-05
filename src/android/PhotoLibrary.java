@@ -235,9 +235,12 @@ public class PhotoLibrary extends CordovaPlugin {
                 return;
               }
 
-              service.saveVideo(getContext(), cordova, url, album);
-
-              callbackContext.success();
+              service.saveVideo(getContext(), cordova, url, album, new PhotoLibraryService.JSONObjectRunnable() {
+                @Override
+                public void run(JSONObject result) {
+                  callbackContext.success(result);
+                }
+              });
 
             } catch (Exception e) {
               e.printStackTrace();
@@ -256,14 +259,15 @@ public class PhotoLibrary extends CordovaPlugin {
                 callbackContext.error(service.PERMISSION_ERROR);
                 return;
               }
-              dataUrl = service.getVideo(getContext(), cordova, videoId);
-              callbackContext.sendPluginResult(createMultipartPluginResult(PluginResult.Status.OK, dataUrl));
+              PhotoLibraryService.PictureData video = service.getVideo(getContext(), videoId);
+              callbackContext.sendPluginResult(createMultipartPluginResult(PluginResult.Status.OK, video));
             } catch (Exception e) {
               e.printStackTrace();
               callbackContext.error(e.getMessage());
             }
           }
-        })
+        });
+        return true;
       }
 
       return false;
