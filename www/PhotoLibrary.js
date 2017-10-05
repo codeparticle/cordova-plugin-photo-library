@@ -283,6 +283,17 @@ photoLibrary.saveVideo = function (url, album, success, error) {
 
 };
 
+// url is file url or dataURL
+photoLibrary.getVideo = function (videoId, success, error) {
+
+  cordova.exec(
+    success,
+    error,
+    'PhotoLibrary',
+    'getVideo', [videoId]
+  );
+};
+
 module.exports = photoLibrary;
 
 var getThumbnailOptionsWithDefaults = function (options) {

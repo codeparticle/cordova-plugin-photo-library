@@ -584,9 +584,47 @@ exports.defineManualTests = function (contentEl, createActionButton) {
     log.innerHTML = '';
   };
 
+  var saveVideoToCameraRoll = function (localUrl, album) {
+    cordova.plugins.photoLibrary.saveVideo(localUrl, album,
+      function (libraryItem) {
+        logMessage("video successfully saved to Camera Roll!")
+        logMessage(libraryItem.id);
+        cordova.plugins.photoLibrary.getVideo(libraryItem.id, function (dataUrl) {
+          logMessage("video successfully converted to Data URL!")
+        }, function (err) {
+          logMessage(err);
+        });
+      }, function (err) {
+        logMessage(err);
+      });
+  };
+  var downloadFile = function(fileEntry, url) {
+    var fileTransfer = new FileTransfer();
+    var fileURL = fileEntry.toURL();
+    fileTransfer.download(
+      url,
+      fileURL,
+      function(entry) {
+        logMessage("download complete: " + entry.toURL());
+        var album = 'test album';
+        saveVideoToCameraRoll(entry.toURL(), album);
+      },
+      function(error) {
+        logMessage("download error source " + error.source);
+        logMessage("download error target " + error.target);
+        logMessage("download error code" + error.code);
+      },
+      true
+    );
+  };
+
   var photo_library_tests = '<h3>Press requestAuthorization button to authorize storage</h3>' +
     '<div id="request_authorization"></div>' +
     'Expected result: If authorized, this fact will be logged. On iOS: settings page will open. On Android: confirmation prompt will open.' +
+
+    '<h3>Press the button to save a test video to iOS and generate a data url out of it</h3>' +
+    '<div id="save_video_ios"></div>' +
+    'Expected result: The video should appear in the camera roll and it should generate a Data URL with no error' +
 
     '<h3>Press the button to visually inspect test-images</h3>' +
     '<div id="inspect_test_images"></div>' +
@@ -622,6 +660,20 @@ exports.defineManualTests = function (contentEl, createActionButton) {
       }
     );
   }, 'request_authorization');
+
+  createActionButton('iOS Video to Data URL', function () {
+      clearLog();
+      window.requestFileSystem(window.TEMPORARY, 5 * 1024 * 1024, function (fs) {
+        var fileName = "test.mp4";
+        var dirEntry = fs.root;
+        dirEntry.getFile(fileName, {create: true, exclusive: false}, function (fileEntry) {
+          var url = 'https://s3.amazonaws.com/uploads.hipchat.com/30215/3617913/FPgVSyPUJm4jWhb/test-vid-android-short.mp4';
+          downloadFile(fileEntry, url);
+        }, function () {
+        });
+      }, function () {
+      });
+    }, 'save_video_ios');
 
   createActionButton('inspect test images', function () {
     clearLog();

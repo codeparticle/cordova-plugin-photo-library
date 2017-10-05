@@ -120,6 +120,9 @@ var photoLibraryProxy = {
     error('not implemented');
   },
 
+  getVideo: function(success, error, [url]) {
+    error('not implemented');
+  }
 };
 
 module.exports = photoLibraryProxy;

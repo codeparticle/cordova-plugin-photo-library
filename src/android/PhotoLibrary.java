@@ -35,6 +35,7 @@ public class PhotoLibrary extends CordovaPlugin {
   public static final String ACTION_REQUEST_AUTHORIZATION = "requestAuthorization";
   public static final String ACTION_SAVE_IMAGE = "saveImage";
   public static final String ACTION_SAVE_VIDEO = "saveVideo";
+  public static final String ACTION_GET_VIDEO = "getVideo";
 
   public CallbackContext callbackContext;
 
@@ -246,6 +247,23 @@ public class PhotoLibrary extends CordovaPlugin {
         });
         return true;
 
+      } else if (ACTION_GET_VIDEO.equals(action)) {
+        cordova.getThreadPool().execute(new Runnable() {
+          public void run() {
+            try {
+              final String videoId = args.getString(0);
+              if (!cordova.hasPermission(READ_EXTERNAL_STORAGE)) {
+                callbackContext.error(service.PERMISSION_ERROR);
+                return;
+              }
+              dataUrl = service.getVideo(getContext(), cordova, videoId);
+              callbackContext.sendPluginResult(createMultipartPluginResult(PluginResult.Status.OK, dataUrl));
+            } catch (Exception e) {
+              e.printStackTrace();
+              callbackContext.error(e.getMessage());
+            }
+          }
+        })
       }
 
       return false;
