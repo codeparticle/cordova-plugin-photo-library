@@ -713,6 +713,7 @@ public class PhotoLibraryService {
       if (!matcher.find()) {
         throw new IllegalArgumentException("The dataURL is in incorrect format");
       }
+
       String mime = matcher.group(2);
       int dataPos = matcher.end();
 
@@ -723,6 +724,9 @@ public class PhotoLibraryService {
         throw new IllegalArgumentException("The dataURL could not be decoded");
       }
 
+      if (mime == null) {
+        mime = ".jpg";
+      }
       String extension = mimeToExtension.get(mime);
       if (extension == null) {
         extension = "." + mime;
