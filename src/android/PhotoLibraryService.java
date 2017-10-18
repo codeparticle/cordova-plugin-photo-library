@@ -714,10 +714,7 @@ public class PhotoLibraryService {
         throw new IllegalArgumentException("The dataURL is in incorrect format");
       }
 
-      String mime = ".jpg";
-      if (matcher.groupCount() > 1) {
-        mime = matcher.group(2);
-      }
+      String mime = matcher.group(2);
       int dataPos = matcher.end();
 
       String base64 = url.substring(dataPos); // Use substring and not replace to keep memory footprint small
@@ -727,6 +724,9 @@ public class PhotoLibraryService {
         throw new IllegalArgumentException("The dataURL could not be decoded");
       }
 
+      if (mime == null) {
+        mime = ".jpg";
+      }
       String extension = mimeToExtension.get(mime);
       if (extension == null) {
         extension = "." + mime;
