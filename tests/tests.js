@@ -598,7 +598,21 @@ exports.defineManualTests = function (contentEl, createActionButton) {
         logMessage(err);
       });
   };
-  var downloadFile = function(fileEntry, url) {
+  var saveImageToCameraRoll = function (url, album) {
+    cordova.plugins.photoLibrary.saveImage(url, album,
+      function (libraryItem) {
+        logMessage("video successfully saved to Camera Roll!")
+        logMessage(libraryItem.id);
+        cordova.plugins.photoLibrary.getPhoto(libraryItem.id, function (dataUrl) {
+          logMessage("video successfully converted to Data URL!")
+        }, function (err) {
+          logMessage(err);
+        });
+      }, function (err) {
+        logMessage(err);
+      });
+  };
+  var downloadVideoFile = function(fileEntry, url) {
     var fileTransfer = new FileTransfer();
     var fileURL = fileEntry.toURL();
     fileTransfer.download(
@@ -622,9 +636,13 @@ exports.defineManualTests = function (contentEl, createActionButton) {
     '<div id="request_authorization"></div>' +
     'Expected result: If authorized, this fact will be logged. On iOS: settings page will open. On Android: confirmation prompt will open.' +
 
-    '<h3>Press the button to save a test video to iOS and generate a data url out of it</h3>' +
-    '<div id="save_video_ios"></div>' +
+    '<h3>Press the button to save a test video and generate a data url out of it</h3>' +
+    '<div id="save_video"></div>' +
     'Expected result: The video should appear in the camera roll and it should generate a Data URL with no error' +
+
+    '<h3>Press the button to save a picture with no extension and generate a data url out of it</h3>' +
+    '<div id="save_picture_no_extension"></div>' +
+    'Expected result: The picture should appear in the camera roll and it should generate a Data URL with no error' +
 
     '<h3>Press the button to visually inspect test-images</h3>' +
     '<div id="inspect_test_images"></div>' +
@@ -661,19 +679,34 @@ exports.defineManualTests = function (contentEl, createActionButton) {
     );
   }, 'request_authorization');
 
-  createActionButton('iOS Video to Data URL', function () {
-      clearLog();
-      window.requestFileSystem(window.TEMPORARY, 5 * 1024 * 1024, function (fs) {
-        var fileName = "test.mp4";
-        var dirEntry = fs.root;
-        dirEntry.getFile(fileName, {create: true, exclusive: false}, function (fileEntry) {
-          var url = 'https://s3.amazonaws.com/uploads.hipchat.com/30215/3617913/FPgVSyPUJm4jWhb/test-vid-android-short.mp4';
-          downloadFile(fileEntry, url);
-        }, function () {
-        });
+  createActionButton('video to Data URL', function () {
+    clearLog();
+    window.requestFileSystem(window.TEMPORARY, 5 * 1024 * 1024, function (fs) {
+      var fileName = "test.mp4";
+      var dirEntry = fs.root;
+      dirEntry.getFile(fileName, {create: true, exclusive: false}, function (fileEntry) {
+        var url = 'https://s3.amazonaws.com/uploads.hipchat.com/30215/3617913/FPgVSyPUJm4jWhb/test-vid-android-short.mp4';
+        downloadVideoFile(fileEntry, url);
       }, function () {
       });
-    }, 'save_video_ios');
+    }, function () {
+    });
+  }, 'save_video');
+
+  createActionButton('photo no extension to Data URL', function () {
+    clearLog();
+    window.requestFileSystem(window.TEMPORARY, 5 * 1024 * 1024, function (fs) {
+      var fileName = "test.jpg";
+      var dirEntry = fs.root;
+      dirEntry.getFile(fileName, {create: true, exclusive: false}, function (fileEntry) {
+        var url = 'https://qa.momentfeed.com/analytics/api/file/59e6875ee4b08fef6511b7ce';
+        var album = 'test album';
+        saveImageToCameraRoll(url, album);
+      }, function () {
+      });
+    }, function () {
+    });
+  }, 'save_picture_no_extension');
 
   createActionButton('inspect test images', function () {
     clearLog();
