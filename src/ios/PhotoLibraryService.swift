@@ -528,22 +528,23 @@ final class PhotoLibraryService {
                     return
                 }
 
-                self.putMediaToAlbum(assetsLibrary, url: assetUrl, album: album, completion: { (error) in
-                    if error != nil {
-                        completion(nil, error)
-                    } else {
-                        let fetchResult = PHAsset.fetchAssets(withALAssetURLs: [assetUrl], options: nil)
-                        var libraryItem: NSDictionary? = nil
-                        if fetchResult.count == 1 {
-                            let asset = fetchResult.firstObject
-                            if let asset = asset {
-                                libraryItem = self.assetToLibraryItem(asset: asset, useOriginalFileNames: false, includeAlbumData: true)
-                            }
-                        }
-                        completion(libraryItem, nil)
-                    }
-                })
-
+                DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.1) {
+                  self.putMediaToAlbum(url: assetUrl, album: album, completion: { (error) in
+                      if error != nil {
+                          completion(nil, error)
+                      } else {
+                          let fetchResult = PHAsset.fetchAssets(withALAssetURLs: [assetUrl], options: nil)
+                          var libraryItem: NSDictionary? = nil
+                          if fetchResult.count == 1 {
+                              let asset = fetchResult.firstObject
+                              if let asset = asset {
+                                  libraryItem = self.assetToLibraryItem(asset: asset, useOriginalFileNames: false, includeAlbumData: true)
+                              }
+                          }
+                          completion(libraryItem, nil)
+                      }
+                  })
+                }
             }
         }
 
@@ -603,21 +604,23 @@ final class PhotoLibraryService {
                     return
                 }
 
-                self.putMediaToAlbum(assetsLibrary, url: assetUrl, album: album, completion: { (error) in
-                    if error != nil {
-                        completion(nil, error)
-                    } else {
-                        let fetchResult = PHAsset.fetchAssets(withALAssetURLs: [assetUrl], options: nil)
-                        var libraryItem: NSDictionary? = nil
-                        if fetchResult.count == 1 {
-                            let asset = fetchResult.firstObject
-                            if let asset = asset {
-                                libraryItem = self.assetToLibraryItem(asset: asset, useOriginalFileNames: false, includeAlbumData: true)
-                            }
-                        }
-                        completion(libraryItem, nil)
-                     }
-                })
+                DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.1) {
+                  self.putMediaToAlbum(url: assetUrl, album: album, completion: { (error) in
+                      if error != nil {
+                          completion(nil, error)
+                      } else {
+                          let fetchResult = PHAsset.fetchAssets(withALAssetURLs: [assetUrl], options: nil)
+                          var libraryItem: NSDictionary? = nil
+                          if fetchResult.count == 1 {
+                              let asset = fetchResult.firstObject
+                              if let asset = asset {
+                                  libraryItem = self.assetToLibraryItem(asset: asset, useOriginalFileNames: false, includeAlbumData: true)
+                              }
+                          }
+                          completion(libraryItem, nil)
+                       }
+                  })
+                }
             }
 
         }
@@ -684,8 +687,9 @@ final class PhotoLibraryService {
         }
     }
 
-    fileprivate func putMediaToAlbum(_ assetsLibrary: ALAssetsLibrary, url: URL, album: String, completion: @escaping (_ error: String?)->Void) {
+    fileprivate func putMediaToAlbum(url: URL, album: String, completion: @escaping (_ error: String?)->Void) {
 
+        let assetsLibrary = ALAssetsLibrary()
         assetsLibrary.asset(for: url, resultBlock: { (asset: ALAsset?) in
 
             guard let asset = asset else {
